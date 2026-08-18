@@ -1,0 +1,48 @@
+flowchart TD
+    TRIGGER["Trigger: CI completed<br/>or Telegram message"] --> RECALL
+
+    RECALL["recall() — before planning<br/>query memory store for:<br/>- similar past CI failures + how resolved<br/>- past human corrections on similar questions"]
+
+    MEMSTORE[("Memory store<br/>vector/KV: past executions,<br/>outcomes, human corrections,<br/>tagged by topic/error-type")]
+
+    RECALL <-.->|"read"| MEMSTORE
+
+    RECALL --> PLANNER
+
+    PLANNER{{"Planner agent<br/>sees recalled context:<br/>'last time a similar failure<br/>happened, root cause was X'<br/>→ plans accordingly"}}
+
+    PLANNER -->|needsCI| CI_AGENT["CI-Analyst agent"]
+    PLANNER -->|needsBrowser| SITE_AGENT["Site-Inspector agent"]
+
+    CI_AGENT --> SYNTH
+    SITE_AGENT --> SYNTH
+
+    SYNTH["Synthesizer agent<br/>drafts answer, informed by<br/>recalled history + specialist output"]
+
+    SYNTH --> REFLECT{{"Reflection<br/>(max 2 retries)"}}
+    REFLECT -->|revise| SYNTH
+    REFLECT -->|good enough| SEND
+
+    SEND["send_telegram"] --> USERREPLY
+
+    USERREPLY{"User replies?"}
+    USERREPLY -->|"no reply /<br/>👍 reaction"| LOG_OK["Log: outcome = accepted"]
+    USERREPLY -->|"correction<br/>'actually it was X'"| LOG_FIX["Log: outcome = corrected<br/>+ store the correction text"]
+
+    LOG_OK -.->|write| MEMSTORE
+    LOG_FIX -.->|write| MEMSTORE
+
+    subgraph OFFLINE["Separate periodic job — e.g. weekly GitHub Action, NOT part of live execution"]
+        BATCH["Pull accumulated logs<br/>from memory store"]
+        GEPA["AxGEPA optimizer<br/>uses corrections as training signal<br/>optimizes signatures / few-shot examples"]
+        DEPLOY["Deploy improved<br/>signature/prompt config"]
+        BATCH --> GEPA --> DEPLOY
+    end
+
+    MEMSTORE -.->|"periodic pull"| BATCH
+    DEPLOY -.->|"updates prompts used by"| PLANNER
+    DEPLOY -.->|"updates prompts used by"| SYNTH
+
+    style RECALL fill:#fff2cc
+    style MEMSTORE fill:#fff2cc
+    style OFFLINE fill:#f0f0f0

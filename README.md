@@ -22,7 +22,7 @@ The bot does the work for you. It gets the logs. It finds which tests failed. It
 
 When you send a message to the bot in Telegram, it answers with CI data and live website inspection:
 
-> You: why did the deploy break checkout?
+> You: why did the deploy break checkout?  
 > Bot: Last CI run failed on `checkout-e2e.spec.ts` — the Stripe webhook URL changed in config but the test still points at the old endpoint. The live site returns 502 on `/api/webhooks/stripe`. Check `STRIPE_WEBHOOK_URL` in your deploy config.
 
 ### The bot learns over time

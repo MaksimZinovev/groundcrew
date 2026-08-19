@@ -24,6 +24,13 @@ shaping: true
 | R6.1 | Repo structured as a publishable, forkable template others can adapt | Must-have |
 | R6.2 | All team-specific values (CI tokens, git secrets, Telegram bot token, target website URL, chat IDs) in env vars — never committed | Must-have |
 | R6.3 | Template docs and forker-facing README (how to adapt this) | Nice-to-have |
+| R7 | 🟡 **Efficiency and simplicity** | |
+| R7.1 | 🟡 Token efficiency — workflow broken into smaller tasks, only relevant parts sent to LLM, supports local/cheap LLMs | Must-have |
+| R7.2 | 🟡 Dead-simple setup — CLI wizard, AI skill, and sample project (Playwright/CI) so users can get started in minutes | Must-have |
+| R7.3 | 🟡 Minimal but extensible — platform-agnostic, easily extend to other CI types, testing frameworks, tools, customize logic and routing | Must-have |
+| R8 | 🟡 **Lean deployment on GitHub Actions** | |
+| R8.1 | 🟡 Entire bot runs on GitHub Actions — no external server, no Vercel, no container | Must-have |
+| R8.2 | 🟡 Browser agent lightweight enough to run on GitHub Actions runner (Ubuntu, limited time, no persistent browser infra) | Must-have |
 
 ---
 
@@ -47,10 +54,18 @@ Single TypeScript deployable project. Eve owns triggers/channels/deploy shape; A
 | R6.1 | Repo structured as a publishable, forkable template others can adapt | Must-have | ✅ |
 | R6.2 | All team-specific values in env vars — never committed | Must-have | ✅ |
 | R6.3 | Template docs and forker-facing README | Nice-to-have | ✅ |
+| R7.1 | 🟡 Token efficiency — smaller tasks, only relevant parts to LLM, local/cheap LLM support | Must-have | ✅ |
+| R7.2 | 🟡 Dead-simple setup — CLI wizard, AI skill, sample project | Must-have | ❌ |
+| R7.3 | 🟡 Minimal but extensible — platform-agnostic, extend to other CI/frameworks | Must-have | ⚠️→❌ |
+| R8.1 | 🟡 Entire bot runs on GitHub Actions — no external server | Must-have | ❌ |
+| R8.2 | 🟡 Browser agent lightweight enough for GitHub Actions runner | Must-have | ❌ |
 
 **Notes:**
 
-- All ✅. No ❌. Shape C addresses every requirement. R2 and R5.2 are deferred to later milestones (see Milestone Sequence below) but the shape accommodates them without rearchitecting.
+- R7.2 fails: Shape C has no CLI wizard, AI skill, or sample project component. These are new capabilities not in C1–C5.
+- R7.3 fails: C1.1 is hardcoded to GitHub Actions `workflow_run` webhook. The shape needs a pluggable CI provider interface to be platform-agnostic. Mechanism not yet described.
+- R8.1 fails: Shape C uses Eve, which is a Vercel-first framework for durable agents. GitHub Actions is ephemeral (each run is a fresh container). Eve's durable-agent model (channels, schedules, persistent state) does not map cleanly to GitHub Actions' event-driven workflow model. This is a shape-level question — see Open Items.
+- R8.2 fails: C2.4 says "Playwright" but the browser tool has not been evaluated against GitHub Actions runner constraints. 32 candidates in `shaping/GitHub-Stars-Manager-browser-agent.md` need a spike to resolve.
 
 ---
 
@@ -114,6 +129,11 @@ Single TypeScript deployable project. Eve owns triggers/channels/deploy shape; A
 | C5.1 | `.env.example` ships with placeholder values and documentation | |
 | C5.2 | All team-specific values read from `process.env` at runtime | |
 | C5.3 | Template docs, forker README, "how to adapt this" guides | ⚠️ |
+| C5.4 | 🟡 CLI wizard (`npx groundcrew init`) — prompts for CI provider, Telegram token, chat ID, target URL; generates `.env` and workflow file | ⚠️ |
+| C5.5 | 🟡 Sample project — a repo with a Playwright test suite and GitHub Actions workflow that triggers Groundcrew on `workflow_run` | ⚠️ |
+| C5.6 | 🟡 AI skill — a reusable skill (pi/Claude Code) that helps users adapt Groundcrew to their stack | ⚠️ |
+
+> **C5.4–C5.6 are ⚠️** — new components from R7.2. The mechanisms are described at a high level but not yet concretely designed.
 
 > **C5.3 is ⚠️** — deferred. The env-var config (C5.1–C5.2) is in from line one; the forker-facing documentation is extracted after the bot works for the real team.
 
@@ -174,7 +194,7 @@ Decisions locked in during the ponytail grilling session (Aug 18, 2026). Each wa
 |-----------|-------|-------------------|
 | **M1** | CI webhook → recall → CI-Analyst → synthesize → reflect → send to Telegram → log outcome. Env-var config. GitHub Actions. | C1.1, C1.3, C2.1–C2.3, C2.5–C2.8, C3.1, C5.1–C5.2 |
 | **M2** | Interactive Telegram trigger — user messages bot, bot responds. Reuses M1's Telegram channel + Ax flow. | + C1.2 |
-| **M3** | Browser inspection on CI failure + Ax flow replaces any if/else branching. Evaluate deploy: Vercel fn vs container. | + C2.4 |
+| **M3** | 🟡 Browser inspection on CI failure. Browser tool selected from spike (must run on GitHub Actions). | + C2.4 |
 | **M4** | Memory recall upgrade (vector search) + GEPA offline optimizer (weekly GitHub Action). | + C3.2, C4.1–C4.3 |
 | **M5** | Template packaging — forker README, example configs, adaptation docs. | + C5.3 |
 
@@ -184,7 +204,9 @@ Decisions locked in during the ponytail grilling session (Aug 18, 2026). Each wa
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Deploy target (GitHub vs Cloudflare vs Vercel) | TBD | Separate conversation. Affects trigger/channel architecture if not Vercel. |
-| Eve deploy model outside Vercel | TBD | Depends on deploy target decision. Eve is Vercel-first; running on GitHub/Cloudflare may require adaptation or alternative. |
-| Memory store backend (JSON file vs KV vs DB) | Lean toward JSON file for v1 | Simplest. Upgrade to vector search in M4. |
-| Project name | TBD | Three candidates: Kettlewatch, Squawkbox, Groundcrew. None confirmed. |
+| 🟡 **Eve vs plain GitHub Actions workflow** | **Open — blocks R8.1** | R8.1 requires running on GitHub Actions. Eve is Vercel-first (durable agent, channels, schedules). GitHub Actions is ephemeral (fresh container per run). Options: (a) drop Eve, use plain GitHub Actions workflow as trigger + Ax for reasoning — simplest, fewest deps; (b) keep Eve, adapt it to GitHub Actions — may not be feasible or worth the effort; (c) keep Eve for M2 (interactive Telegram) but use plain GH Actions for M1. **Recommendation:** spike option (a) — it may be simpler and more aligned with R7.3 (minimal). |
+| 🟡 **Browser agent selection** | **Open — blocks R8.2** | 32 candidates in `shaping/GitHub-Stars-Manager-browser-agent.md`. Must run on GitHub Actions Ubuntu runner. Needs spike to evaluate top candidates against constraints: TypeScript, lightweight, no external browser infra, works as Ax node, runs within GitHub Actions time limits. |
+| 🟡 **CI provider pluggability** | **Open — blocks R7.3** | C1.1 is hardcoded to GitHub Actions. Need a pluggable interface so other CI providers (CircleCI, GitLab CI) can be added without rearchitecting. Mechanism not yet described. |
+| Deploy target | 🟡 Resolved: GitHub Actions | R8.1 settles this. No Vercel, no Cloudflare, no external server. |
+| Memory store backend | 🟡 Updated | GitHub Actions has no persistent filesystem between runs. Options: GitHub Actions cache, GitHub artifacts, or external KV (e.g. GitHub repo as KV via API). JSON file alone won't persist across runs. |
+| Project name | Confirmed: Groundcrew | Repo created at github.com/MaksimZinovev/groundcrew. |

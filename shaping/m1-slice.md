@@ -163,8 +163,25 @@ N1 (workflow_run)
 
 ### Tech stack for V1
 
-- `@ax-llm/ax` — Ax flow framework
+- `@ax-llm/ax` — Ax flow framework. Provider config via `ai()` factory. Default: Ollama Cloud (OpenAI-compatible, `apiURL: 'https://ollama.com/v1'`). Switching to OpenAI, Anthropic, or any OpenAI-compatible endpoint is an env-var change — no code change. Ax falls back to prompt-mode extraction when the provider lacks native `response_format` support.
 - `@octokit/rest` or plain `fetch` — GitHub REST API
 - Plain `fetch` — Telegram Bot API (`sendMessage`)
 - Node.js 20+ — runtime on GitHub Actions runner
 - TypeScript — single language (R4)
+
+### LLM provider config
+
+```typescript
+import { ai } from '@ax-llm/ax';
+
+// Default: Ollama Cloud (OpenAI-compatible)
+const aiService = ai({
+  name: 'openai',
+  apiKey: process.env.OLLAMA_API_KEY,
+  apiURL: process.env.LLM_API_URL || 'https://ollama.com/v1',
+  config: { model: process.env.LLM_MODEL || 'glm-5.1' },
+});
+
+// To switch to OpenAI: set LLM_API_URL=https://api.openai.com/v1, LLM_MODEL=gpt-4o, OPENAI_API_KEY=...
+// To switch to Anthropic: change `name` to 'anthropic' (requires code change or future config layer)
+```

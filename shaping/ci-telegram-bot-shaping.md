@@ -56,14 +56,14 @@ Single TypeScript deployable project. Eve owns triggers/channels/deploy shape; A
 | R6.3 | Template docs and forker-facing README | Nice-to-have | ✅ |
 | R7.1 | 🟡 Token efficiency — smaller tasks, only relevant parts to LLM, local/cheap LLM support | Must-have | ✅ |
 | R7.2 | 🟡 Dead-simple setup — CLI wizard, AI skill, sample project | Must-have | ❌ |
-| R7.3 | 🟡 Minimal but extensible — platform-agnostic, extend to other CI/frameworks | Must-have | ⚠️→❌ |
+| R7.3 | 🟡 Minimal but extensible — platform-agnostic, extend to other CI/frameworks | Must-have | ✅ |
 | R8.1 | 🟡 Entire bot runs on GitHub Actions — no external server | Must-have | ❌ |
 | R8.2 | 🟡 Browser agent lightweight enough for GitHub Actions runner | Must-have | ❌ |
 
 **Notes:**
 
 - R7.2 fails: Shape C has no CLI wizard, AI skill, or sample project component. These are new capabilities not in C1–C5.
-- R7.3 fails: C1.1 is hardcoded to GitHub Actions `workflow_run` webhook. The shape needs a pluggable CI provider interface to be platform-agnostic. Mechanism not yet described.
+- R7.3 resolved via C6: plugins are npm packages exporting Ax `fn()` tool definitions. No plugin framework — TypeScript imports are the composition mechanism. CI provider adapters (C6.3) use the same pattern. See C6 component below.
 - R8.1 fails: Shape C uses Eve, which is a Vercel-first framework for durable agents. GitHub Actions is ephemeral (each run is a fresh container). Eve's durable-agent model (channels, schedules, persistent state) does not map cleanly to GitHub Actions' event-driven workflow model. This is a shape-level question — see Open Items.
 - R8.2 fails: C2.4 says "Playwright" but the browser tool has not been evaluated against GitHub Actions runner constraints. 32 candidates in `shaping/GitHub-Stars-Manager-browser-agent.md` need a spike to resolve.
 
@@ -137,6 +137,20 @@ Single TypeScript deployable project. Eve owns triggers/channels/deploy shape; A
 
 > **C5.3 is ⚠️** — deferred. The env-var config (C5.1–C5.2) is in from line one; the forker-facing documentation is extracted after the bot works for the real team.
 
+### C6: Plugin interface 🟡
+
+| Part | Mechanism | Flag |
+|------|-----------|:----:|
+| **C6** | **Plugin interface — npm packages as plugins, no framework** | |
+| C6.1 | 🟡 Plugins are npm packages exporting Ax `fn()` tool definitions — no loader, no registry, no dynamic discovery. TypeScript imports are the composition mechanism. | |
+| C6.2 | 🟡 Core defines AxFlow node slots where plugins plug in: context tools (extra `fn()` for the analyze agent), inspector tools (browser capabilities), CI provider adapters | |
+| C6.3 | 🟡 CI provider adapter interface — the pluggable CI provider (R7.3) is itself a plugin. GitHub Actions adapter ships in-repo; others (CircleCI, GitLab CI) are separate npm packages. | |
+| C6.4 | 🟡 Community plugin convention: `@groundcrew/plugin-*` naming on npm, each published as a separate GitHub repo. Core README links to community plugins. No central registry. | ⚠️ |
+
+> **C6.1–C6.3 are understood** — the mechanism is Ax's `fn()` API + TypeScript imports. No new infrastructure to build. The "plugin system" is npm.
+>
+> **C6.4 is ⚠️** — the community convention and documentation is deferred to M5 (template packaging). The code interface (C6.1–C6.3) is in from M1.
+
 ---
 
 ## Resolved Alternatives (from grilling session)
@@ -192,7 +206,7 @@ Decisions locked in during the ponytail grilling session (Aug 18, 2026). Each wa
 
 | Milestone | Scope | Components active |
 |-----------|-------|-------------------|
-| **M1** | CI webhook → recall → CI-Analyst → synthesize → reflect → send to Telegram → log outcome. Env-var config. GitHub Actions. | C1.1, C1.3, C2.1–C2.3, C2.5–C2.8, C3.1, C5.1–C5.2 |
+| **M1** | CI webhook → recall → CI-Analyst → synthesize → reflect → send to Telegram → log outcome. Env-var config. GitHub Actions. CI provider adapter interface. | C1.1, C1.3, C2.1–C2.3, C2.5–C2.8, C3.1, C5.1–C5.2, C6.1–C6.3 |
 | **M2** | Interactive Telegram trigger — user messages bot, bot responds. Reuses M1's Telegram channel + Ax flow. | + C1.2 |
 | **M3** | 🟡 Browser inspection on CI failure. Browser tool selected from spike (must run on GitHub Actions). | + C2.4 |
 | **M4** | Memory recall upgrade (vector search) + GEPA offline optimizer (weekly GitHub Action). | + C3.2, C4.1–C4.3 |
@@ -206,7 +220,7 @@ Decisions locked in during the ponytail grilling session (Aug 18, 2026). Each wa
 |------|--------|-------|
 | 🟡 **Eve vs plain GitHub Actions workflow** | **Open — blocks R8.1** | R8.1 requires running on GitHub Actions. Eve is Vercel-first (durable agent, channels, schedules). GitHub Actions is ephemeral (fresh container per run). Options: (a) drop Eve, use plain GitHub Actions workflow as trigger + Ax for reasoning — simplest, fewest deps; (b) keep Eve, adapt it to GitHub Actions — may not be feasible or worth the effort; (c) keep Eve for M2 (interactive Telegram) but use plain GH Actions for M1. **Recommendation:** spike option (a) — it may be simpler and more aligned with R7.3 (minimal). |
 | 🟡 **Browser agent selection** | **Open — blocks R8.2** | 32 candidates in `shaping/GitHub-Stars-Manager-browser-agent.md`. Must run on GitHub Actions Ubuntu runner. Needs spike to evaluate top candidates against constraints: TypeScript, lightweight, no external browser infra, works as Ax node, runs within GitHub Actions time limits. |
-| 🟡 **CI provider pluggability** | **Open — blocks R7.3** | C1.1 is hardcoded to GitHub Actions. Need a pluggable interface so other CI providers (CircleCI, GitLab CI) can be added without rearchitecting. Mechanism not yet described. |
+| 🟡 **CI provider pluggability** | **Resolved via C6.3** | CI providers are plugins (npm packages exporting `fn()` adapters). GitHub Actions adapter ships in-repo; others are separate packages. Interface is in from M1. |
 | Deploy target | 🟡 Resolved: GitHub Actions | R8.1 settles this. No Vercel, no Cloudflare, no external server. |
 | Memory store backend | 🟡 Updated | GitHub Actions has no persistent filesystem between runs. Options: GitHub Actions cache, GitHub artifacts, or external KV (e.g. GitHub repo as KV via API). JSON file alone won't persist across runs. |
 | Project name | Confirmed: Groundcrew | Repo created at github.com/MaksimZinovev/groundcrew. |

@@ -25,6 +25,7 @@ Thumbs.db
 *.log
 npm-debug.log*
 
-# PI
+# PI / agent skills
 .pi/
 .prompts/
+.claude/

@@ -1,0 +1,13 @@
+name: Sample CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sample test
+        run: |
+          echo "Running sample tests..."
+          echo "All tests passed."

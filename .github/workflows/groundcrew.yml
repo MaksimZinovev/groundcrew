@@ -1,0 +1,29 @@
+name: Groundcrew CI Summary
+
+on:
+  workflow_run:
+    workflows: ["Sample CI"]
+    types: [completed]
+
+jobs:
+  summarize:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run build
+      - name: Run Groundcrew
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+          LLM_API_URL: ${{ vars.LLM_API_URL }}
+          LLM_MODEL: ${{ vars.LLM_MODEL }}
+        run: node dist/index.js

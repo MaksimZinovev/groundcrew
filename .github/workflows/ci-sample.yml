@@ -11,3 +11,18 @@ jobs:
         run: |
           echo "Running sample tests..."
           echo "All tests passed."
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sample lint
+        run: |
+          echo "Checking formatting..."
+          # Simulate a lint failure ~50% of the time
+          if [ $(( $(echo $GITHUB_SHA | cksum |
+            cut -d' ' -f1) % 2 )) -eq 0 ]; then
+            echo "Error: missing semicolon on line 42"
+            exit 1
+          fi
+          echo "Lint passed."

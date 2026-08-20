@@ -4,7 +4,7 @@ shaping: true
 
 # Groundcrew — M1 Slice: CI Summary
 
-> Input: `breadboard.md` (affordance tables, wiring). This document slices the M1 milestone into vertical implementation increments.
+> Input: `breadboard.md` (affordance tables, wiring). This document slices the M1 milestone into vertical implementation increments. See `ax-agent-skills.md` for Ax skills to load during implementation.
 
 ---
 

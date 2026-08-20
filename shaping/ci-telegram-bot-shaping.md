@@ -4,7 +4,7 @@ shaping: true
 
 # CI + Telegram Bot — Shaping
 
-> See `ci-telegram-bot-frame.md` for source, problem, and outcome. See `self-improving.md` for the self-improvement design that informed R5 and the Ax flow shape. See `ADR-001-bot-runtime-decision.md` for the runtime decision that removed Eve and settled GitHub Actions as the only platform.
+> See `ci-telegram-bot-frame.md` for source, problem, and outcome. See `self-improving.md` for the self-improvement design that informed R5 and the Ax flow shape. See `ADR-001-bot-runtime-decision.md` for the runtime decision that removed Eve and settled GitHub Actions as the only platform. See `ax-agent-skills.md` for the Ax agent skills relevant to implementation.
 
 ---
 

@@ -4,7 +4,7 @@ shaping: true
 
 # CI + Telegram Bot — Shaping
 
-> See `ci-telegram-bot-frame.md` for source, problem, and outcome. See `self-improving.md` for the self-improvement design that informed R5 and the Ax flow shape.
+> See `ci-telegram-bot-frame.md` for source, problem, and outcome. See `self-improving.md` for the self-improvement design that informed R5 and the Ax flow shape. See `ADR-001-bot-runtime-decision.md` for the runtime decision that removed Eve and settled GitHub Actions as the only platform.
 
 ---
 
@@ -34,11 +34,11 @@ shaping: true
 
 ---
 
-## Selected Shape: C — Eve + Ax
+## Selected Shape: C — Ax on GitHub Actions
 
-Single TypeScript deployable project. Eve owns triggers/channels/deploy shape; Ax owns the reasoning workflow as a typed, branching flow graph.
+Single TypeScript project. GitHub Actions workflow triggers own the trigger layer (replacing Eve per ADR-001). Ax owns the reasoning workflow as a typed, branching flow graph. Everything runs inside GitHub Actions runners — no external server, no Vercel, no Eve, no database.
 
-> Options A (Eve + LangGraph, Python boundary) and B (Eve alone, no formal branching) were explored in the frame and rejected. See frame's "Pre-work: Architecture Options Considered" for the full comparison. Shape C is the only option that is both single-language and gives explicit branching control (R3 + R4).
+> **Evolution note:** Shape C was originally "Eve + Ax" (see frame's architecture options). ADR-001 removed Eve after clarifying the real usage pattern: low-frequency, bounded-duration sessions, not 24/7. GitHub Actions triggers (`workflow_run`, `schedule`, `workflow_dispatch`) + Telegram long polling replace Eve's channels. Playwright runs directly inside the runner for browsing. Memory is stored as files on a `bot-memory` git branch. See `ADR-001-bot-runtime-decision.md` for the full rationale.
 
 ### Fit Check: R × C
 
@@ -57,30 +57,31 @@ Single TypeScript deployable project. Eve owns triggers/channels/deploy shape; A
 | R7.1 | 🟡 Token efficiency — smaller tasks, only relevant parts to LLM, local/cheap LLM support | Must-have | ✅ |
 | R7.2 | 🟡 Dead-simple setup — CLI wizard, AI skill, sample project | Must-have | ❌ |
 | R7.3 | 🟡 Minimal but extensible — platform-agnostic, extend to other CI/frameworks | Must-have | ✅ |
-| R8.1 | 🟡 Entire bot runs on GitHub Actions — no external server | Must-have | ❌ |
+| R8.1 | 🟡 Entire bot runs on GitHub Actions — no external server | Must-have | ✅ |
 | R8.2 | 🟡 Browser agent lightweight enough for GitHub Actions runner | Must-have | ❌ |
 
 **Notes:**
 
-- R7.2 fails: Shape C has no CLI wizard, AI skill, or sample project component. These are new capabilities not in C1–C5.
+- R7.2 fails: Shape C has no CLI wizard, AI skill, or sample project component. These are new capabilities not in C1–C6.
 - R7.3 resolved via C6: plugins are npm packages exporting Ax `fn()` tool definitions. No plugin framework — TypeScript imports are the composition mechanism. CI provider adapters (C6.3) use the same pattern. See C6 component below.
-- R8.1 fails: Shape C uses Eve, which is a Vercel-first framework for durable agents. GitHub Actions is ephemeral (each run is a fresh container). Eve's durable-agent model (channels, schedules, persistent state) does not map cleanly to GitHub Actions' event-driven workflow model. This is a shape-level question — see Open Items.
+- R8.1 resolved via ADR-001: GitHub Actions only. No Eve, no Vercel, no Cloudflare, no external server. Three triggers: `workflow_run` (CI summary), `schedule` (live chat sessions), `workflow_dispatch` (on-demand). Telegram long polling instead of webhook. See `ADR-001-bot-runtime-decision.md`.
 - R8.2 fails: C2.4 says "Playwright" but the browser tool has not been evaluated against GitHub Actions runner constraints. 32 candidates in `shaping/GitHub-Stars-Manager-browser-agent.md` need a spike to resolve.
 
 ---
 
-## Components (C1–C5)
+## Components (C1–C6)
 
-### C1: Trigger/channel layer (Eve)
+### C1: Trigger layer (GitHub Actions) 🟡
 
 | Part | Mechanism | Flag |
 |------|-----------|:----:|
-| **C1** | **Trigger/channel layer (Eve)** | |
-| C1.1 | Eve `channels/` receives GitHub Actions `workflow_run` webhook event | |
-| C1.2 | Eve `channels/` receives Telegram messages (interactive trigger — wired in M2, designed for in M1) | ⚠️ |
-| C1.3 | Eve `tools/` wrap external calls: fetch CI run logs via GitHub REST API, send Telegram message | |
+| **C1** | **Trigger layer (GitHub Actions workflows)** | |
+| C1.1 | 🟡 GitHub Actions `workflow_run` trigger fires when a CI workflow completes | |
+| C1.2 | 🟡 GitHub Actions `schedule` + `workflow_dispatch` triggers open time-boxed Telegram long-polling sessions (M2) | ⚠️ |
+| C1.3 | 🟡 Plain TypeScript functions for external calls: fetch CI run logs via GitHub REST API, send Telegram message via HTTP POST | |
+| C1.4 | 🟡 `concurrency` setting prevents overlapping long-polling sessions (one bot token = one session at a time) | |
 
-> **C1.2 is ⚠️** — the Telegram *send* channel is needed in M1 (posting summaries); the Telegram *receive* channel (interactive trigger) is deferred to M2. The mechanism is understood (Eve Telegram channel), but not yet wired. This is a sequencing decision, not an unknown.
+> **C1.2 is ⚠️** — the `workflow_run` trigger (C1.1) is needed in M1 (posting CI summaries to Telegram). The interactive Telegram session (`schedule` + `workflow_dispatch` + long polling) is deferred to M2. The mechanism is understood (Telegram `getUpdates` long polling per ADR-001), but not yet wired. This is a sequencing decision, not an unknown.
 
 ### C2: Reasoning workflow (Ax AxFlow)
 
@@ -96,26 +97,28 @@ Single TypeScript deployable project. Eve owns triggers/channels/deploy shape; A
 | C2.7 | Send node — posts summary to Telegram via C1.3 | |
 | C2.8 | Log outcome node — logs accepted/corrected + stores correction text, tagged by topic | |
 
-> **C2.1 is ⚠️** — recall() needs a memory store (C3) that doesn't exist yet. The mechanism is understood (Ax `onMemoriesSearch`/`recall` pattern from self-improving.md), but the store backing it is a design choice (see C3 alternatives below).
+> **C2.1 is ⚠️** — recall() needs a memory store (C3) that doesn't exist yet. The mechanism is understood (Ax `onMemoriesSearch`/`recall` pattern from self-improving.md), but the store backing it is a design choice (see C3 below).
 >
-> **C2.4 is ⚠️** — browser inspection is deferred to M3. The mechanism (Playwright in an Ax node) is understood but not yet wired. Sequencing decision, not an unknown.
+> **C2.4 is ⚠️** — browser inspection is deferred to M3. The mechanism (Playwright in an Ax node/agent) is understood but not yet wired. Sequencing decision, not an unknown.
 
-### C3: Memory store
+### C3: Memory store (git branch) 🟡
 
 | Part | Mechanism | Flag |
 |------|-----------|:----:|
 | **C3** | **Memory store** | |
-| C3.1 | Simple KV/JSON file store for past executions, outcomes, human corrections (v1) | |
+| C3.1 | 🟡 Files committed to a dedicated `bot-memory` git branch — past executions, outcomes, human corrections, tagged by topic. Read at start of each run, written at end. | |
 | C3.2 | Upgrade to vector search for semantic recall (later, when recall needs it) | ⚠️ |
 
-> **C3.2 is ⚠️** — deferred upgrade. The v1 store (C3.1) is a plain JSON/KV file; semantic search is a later enhancement when the store grows large enough that keyword matching isn't enough.
+> **C3.1 updated per ADR-001:** GitHub Actions has no persistent filesystem between runs. Memory is stored as files on a `bot-memory` git branch — versioned, readable, no database to maintain. Each run reads the branch at start, writes at end.
+>
+> **C3.2 is ⚠️** — deferred upgrade. The v1 store is plain files on a git branch; semantic search is a later enhancement when the store grows large enough that keyword matching isn't enough.
 
 ### C4: Offline GEPA optimizer (deferred)
 
 | Part | Mechanism | Flag |
 |------|-----------|:----:|
 | **C4** | **Offline GEPA optimizer — separate periodic job, NOT part of live execution** | |
-| C4.1 | Weekly GitHub Action pulls accumulated logs/corrections from memory store | ⚠️ |
+| C4.1 | Weekly GitHub Action pulls accumulated logs/corrections from `bot-memory` branch | ⚠️ |
 | C4.2 | AxGEPA optimizer uses corrections as training signal, optimizes signatures/few-shot examples | ⚠️ |
 | C4.3 | Deploys improved signature/prompt config that future executions pick up | ⚠️ |
 
@@ -127,14 +130,14 @@ Single TypeScript deployable project. Eve owns triggers/channels/deploy shape; A
 |------|-----------|:----:|
 | **C5** | **Config and packaging** | |
 | C5.1 | `.env.example` ships with placeholder values and documentation | |
-| C5.2 | All team-specific values read from `process.env` at runtime | |
+| C5.2 | All team-specific values read from `process.env` / GitHub Actions secrets at runtime | |
 | C5.3 | Template docs, forker README, "how to adapt this" guides | ⚠️ |
 | C5.4 | 🟡 CLI wizard (`npx groundcrew init`) — prompts for CI provider, Telegram token, chat ID, target URL; generates `.env` and workflow file | ⚠️ |
 | C5.5 | 🟡 Sample project — a repo with a Playwright test suite and GitHub Actions workflow that triggers Groundcrew on `workflow_run` | ⚠️ |
 | C5.6 | 🟡 AI skill — a reusable skill (pi/Claude Code) that helps users adapt Groundcrew to their stack | ⚠️ |
 
 > **C5.4–C5.6 are ⚠️** — new components from R7.2. The mechanisms are described at a high level but not yet concretely designed.
-
+>
 > **C5.3 is ⚠️** — deferred. The env-var config (C5.1–C5.2) is in from line one; the forker-facing documentation is extracted after the bot works for the real team.
 
 ### C6: Plugin interface 🟡
@@ -153,9 +156,15 @@ Single TypeScript deployable project. Eve owns triggers/channels/deploy shape; A
 
 ---
 
-## Resolved Alternatives (from grilling session)
+## Resolved Alternatives
 
-Decisions locked in during the ponytail grilling session (Aug 18, 2026). Each was an alternative for a component; the selected option is recorded here for the audit trail.
+### ADR-001: Eve removed, GitHub Actions only 🟡
+
+**Decision:** Eve is removed from the architecture entirely. GitHub Actions workflow triggers replace Eve's channels. Telegram long polling replaces Eve's webhook listener. Playwright runs directly inside the GitHub Actions runner. Memory is stored as files on a `bot-memory` git branch.
+
+**Rationale:** The real usage pattern is low-frequency and bounded-duration (daily CI summary, every-second-day 10-15 min chat sessions). An always-on durable agent framework does not match this. One platform (GitHub Actions) is simpler to operate and effectively free. See `ADR-001-bot-runtime-decision.md` for the full decision, options considered, and trade-offs.
+
+**Impact on shape:** Shape C evolves from "Eve + Ax" to "Ax on GitHub Actions." Component C1 (trigger layer) is rewritten. R8.1 fit check changes from ❌ to ✅.
 
 ### C1 trigger scope: CI webhook first, interactive later
 
@@ -164,16 +173,16 @@ Decisions locked in during the ponytail grilling session (Aug 18, 2026). Each wa
 | R0 | CI run results summarized and posted to Telegram automatically | ✅ | ✅ |
 | R1 | Bot wakes on two trigger types | ✅ | ✅ |
 
-**Selected: C1-B.** Ship the CI webhook → summarize → Telegram post path first. The interactive Telegram path is M2 — it reuses the same Telegram channel. **Rationale (ponytail):** two triggers = two channels to wire, two auth flows, two debug paths. One trigger proves the value; the second is additive. **User note:** "design with future in mind" — the Telegram receive channel should be accommodated in the Eve structure without rearchitecting.
+**Selected: C1-B.** Ship the `workflow_run` → summarize → Telegram post path first. The interactive Telegram session (`schedule`/`workflow_dispatch` + long polling) is M2. **Rationale (ponytail):** two triggers = two workflows to wire, two debug paths. One trigger proves the value; the second is additive. **User note:** "design with future in mind" — the interactive trigger should be accommodated in the GitHub Actions workflow structure without rearchitecting.
 
 ### C2 reasoning: Ax from day one
 
-| Req | Requirement | C2-A (Eve + plain functions, add Ax later) | C2-B (Eve + Ax from day one) |
+| Req | Requirement | C2-A (plain functions, add Ax later) | C2-B (Ax from day one) |
 |-----|-------------|:---:|:---:|
 | R3 | Explicit deterministic vs LLM step control | ❌ | ✅ |
 | R5.1 | Recall past runs + corrections before responding | ❌ | ✅ |
 
-**Selected: C2-B.** Ax from day one. **Rationale (user, overriding ponytail's initial recommendation):** The recall() step, feedback-capture step, and planner/synthesizer/reflection nodes are natural Ax flow nodes. Building them as plain functions first and bolting Ax on later means rewriting the same pipeline as a graph. The self-improving.md doc makes the case: recall() before planning and feedback logging after responses are woven into the Ax flow. Only GEPA (C4) is deferred.
+**Selected: C2-B.** Ax from day one. **Rationale:** The recall() step, feedback-capture step, and planner/synthesizer/reflection nodes are natural Ax flow nodes. Building them as plain functions first and bolting Ax on later means rewriting the same pipeline as a graph. The self-improving.md doc makes the case: recall() before planning and feedback logging after responses are woven into the Ax flow. Only GEPA (C4) is deferred.
 
 ### C2.4 browser inspection: deferred
 
@@ -190,15 +199,15 @@ Decisions locked in during the ponytail grilling session (Aug 18, 2026). Each wa
 | R5.1 | Recall past runs + corrections before responding | ❌ | ✅ |
 | R5.2 | Improve prompts/signatures over time via GEPA | ✅ | ✅ |
 
-**Selected: C3/C4-B.** Include recall() + feedback logging from v1 (simple/cheap), defer GEPA to offline periodic job. **Rationale (user, overriding ponytail's initial recommendation):** The cheap version is genuinely cheap — recall() is one read from a memory store (start as JSON/KV file, no vector DB), feedback capture is logging outcomes + storing correction text. Maybe 20 lines on top of the core flow. Not speculative — it's the raw material that makes the eventual GEPA job possible. GEPA itself needs a batch of examples, so it's correctly deferred.
+**Selected: C3/C4-B.** Include recall() + feedback logging from v1 (simple/cheap), defer GEPA to offline periodic job. **Rationale (user):** The cheap version is genuinely cheap — recall() is one read from the `bot-memory` git branch, feedback capture is logging outcomes + storing correction text. Not speculative — it's the raw material that makes the eventual GEPA job possible.
 
-### C5 CI provider: GitHub Actions
+### CI provider: GitHub Actions
 
-**Confirmed.** GitHub Actions is the CI provider. The webhook event is `workflow_run`, logs are fetched via GitHub REST API. Real project reference: `~/repos/scool-playwright`.
+**Confirmed.** GitHub Actions is the CI provider. The trigger is `workflow_run`, logs are fetched via GitHub REST API. Real project reference: `~/repos/scool-playwright`.
 
-### C6 deploy target: lean (GitHub or Cloudflare)
+### Deploy target: GitHub Actions only 🟡
 
-**TBD — discuss separately.** User preference: "stay in GitHub only or maybe Cloudflare. As lean as possible." Key implication: if not Vercel, Eve's Vercel-first deploy model may need adaptation. This is a separate conversation that could affect the trigger/channel architecture.
+**Resolved per ADR-001.** GitHub Actions only. No Vercel, no Cloudflare, no external server, no database.
 
 ---
 
@@ -206,11 +215,11 @@ Decisions locked in during the ponytail grilling session (Aug 18, 2026). Each wa
 
 | Milestone | Scope | Components active |
 |-----------|-------|-------------------|
-| **M1** | CI webhook → recall → CI-Analyst → synthesize → reflect → send to Telegram → log outcome. Env-var config. GitHub Actions. CI provider adapter interface. | C1.1, C1.3, C2.1–C2.3, C2.5–C2.8, C3.1, C5.1–C5.2, C6.1–C6.3 |
-| **M2** | Interactive Telegram trigger — user messages bot, bot responds. Reuses M1's Telegram channel + Ax flow. | + C1.2 |
+| **M1** | `workflow_run` trigger → recall → CI-Analyst → synthesize → reflect → send to Telegram → log outcome. Env-var config. GitHub Actions. CI provider adapter interface. | C1.1, C1.3, C2.1–C2.3, C2.5–C2.8, C3.1, C5.1–C5.2, C6.1–C6.3 |
+| **M2** | Interactive Telegram session — `schedule`/`workflow_dispatch` trigger + long polling. User messages bot, bot responds. Reuses M1's Ax flow. | + C1.2, C1.4 |
 | **M3** | 🟡 Browser inspection on CI failure. Browser tool selected from spike (must run on GitHub Actions). | + C2.4 |
 | **M4** | Memory recall upgrade (vector search) + GEPA offline optimizer (weekly GitHub Action). | + C3.2, C4.1–C4.3 |
-| **M5** | Template packaging — forker README, example configs, adaptation docs. | + C5.3 |
+| **M5** | Template packaging — forker README, example configs, adaptation docs, community plugin docs. | + C5.3, C6.4 |
 
 ---
 
@@ -218,9 +227,10 @@ Decisions locked in during the ponytail grilling session (Aug 18, 2026). Each wa
 
 | Item | Status | Notes |
 |------|--------|-------|
-| 🟡 **Eve vs plain GitHub Actions workflow** | **Open — blocks R8.1** | R8.1 requires running on GitHub Actions. Eve is Vercel-first (durable agent, channels, schedules). GitHub Actions is ephemeral (fresh container per run). Options: (a) drop Eve, use plain GitHub Actions workflow as trigger + Ax for reasoning — simplest, fewest deps; (b) keep Eve, adapt it to GitHub Actions — may not be feasible or worth the effort; (c) keep Eve for M2 (interactive Telegram) but use plain GH Actions for M1. **Recommendation:** spike option (a) — it may be simpler and more aligned with R7.3 (minimal). |
-| 🟡 **Browser agent selection** | **Open — blocks R8.2** | 32 candidates in `shaping/GitHub-Stars-Manager-browser-agent.md`. Must run on GitHub Actions Ubuntu runner. Needs spike to evaluate top candidates against constraints: TypeScript, lightweight, no external browser infra, works as Ax node, runs within GitHub Actions time limits. |
-| 🟡 **CI provider pluggability** | **Resolved via C6.3** | CI providers are plugins (npm packages exporting `fn()` adapters). GitHub Actions adapter ships in-repo; others are separate packages. Interface is in from M1. |
-| Deploy target | 🟡 Resolved: GitHub Actions | R8.1 settles this. No Vercel, no Cloudflare, no external server. |
-| Memory store backend | 🟡 Updated | GitHub Actions has no persistent filesystem between runs. Options: GitHub Actions cache, GitHub artifacts, or external KV (e.g. GitHub repo as KV via API). JSON file alone won't persist across runs. |
-| Project name | Confirmed: Groundcrew | Repo created at github.com/MaksimZinovev/groundcrew. |
+| 🟡 **Browser agent selection** | **Open — blocks R8.2** | 32 candidates in `shaping/GitHub-Stars-Manager-browser-agent.md`. Must run on GitHub Actions Ubuntu runner. Needs spike to evaluate top candidates against constraints: TypeScript, lightweight, no external browser infra, works as Ax node/agent, runs within GitHub Actions time limits. |
+| 🟡 **CLI wizard + sample project design** | **Open — blocks R7.2** | C5.4–C5.6 described but not concretely designed. Need to detail the `npx groundcrew init` flow and the sample project structure. |
+| ~~Eve vs plain GitHub Actions workflow~~ | **Resolved per ADR-001** | Eve removed. GitHub Actions only. |
+| ~~Deploy target~~ | **Resolved per ADR-001** | GitHub Actions only. No Vercel, no Cloudflare. |
+| ~~CI provider pluggability~~ | **Resolved via C6.3** | CI providers are plugins. GitHub Actions adapter ships in-repo. |
+| Memory store backend | Resolved: `bot-memory` git branch | Files committed to a dedicated branch. Versioned, readable, no database. Upgrade to vector search in M4. |
+| Project name | Confirmed: Groundcrew | Repo at github.com/MaksimZinovev/groundcrew. |

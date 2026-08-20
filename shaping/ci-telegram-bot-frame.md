@@ -16,7 +16,7 @@ This is the founding ask: three capabilities in one bot — CI result analysis, 
 
 Raised while reviewing a single-framework (Eve-only) sketch — surfaces a requirement that got lost in the initial ask: explicit, predictable control over *when* the bot runs plain code versus when it lets the model judge, not just an agent improvising the whole thing.
 
-> "Would be t be reasonable combine eve and https://github.com/ax-llm/ax? Same typescript"
+> "Would be t be reasonable combine eve and <https://github.com/ax-llm/ax>? Same typescript"
 
 Direct proposal to resolve the deterministic/LLM-mixing gap while staying in one language.
 
@@ -83,8 +83,8 @@ No competing *problems* surfaced in this thread — the problem stayed fixed fro
 
 Tools discussed and settled on during this design pass (linked here for convenience — not part of the sourced transcript, since the Eve link itself was introduced earlier in the broader conversation, outside this frame's scope):
 
-- **Eve** — filesystem-first framework for durable AI agents (triggers/channels/schedules): https://github.com/vercel/eve
-- **Ax** — TypeScript-first DSPy-style framework (typed signatures, `AxFlow` workflow graphs, GEPA optimizer): https://github.com/ax-llm/ax
+- **Eve** — filesystem-first framework for durable AI agents (triggers/channels/schedules): <https://github.com/vercel/eve>
+- **Ax** — TypeScript-first DSPy-style framework (typed signatures, `AxFlow` workflow graphs, GEPA optimizer): <https://github.com/ax-llm/ax>
 
 ## Project Name Options
 
@@ -103,12 +103,16 @@ Three candidates proposed for the project/repo name, none yet confirmed as avail
 **What this project is:** A bot that monitors CI pipeline runs and can also be interactively questioned in a Telegram chat. It wakes up on two kinds of events — a CI run completing, or a user sending it a message — and can additionally browse a live website to combine that context with CI results before responding.
 
 **Chosen architecture (Option C above):** Eve + Ax, both TypeScript, both running in a single deployable project (e.g. on Vercel).
+
 - **Eve** owns triggering and deployment shape: `channels/` receive the CI webhook and Telegram messages, `schedules/` would handle any time-based checks if needed, `tools/` wrap external calls (fetch CI logs, browse the site, send a Telegram message).
 - **Ax** owns the reasoning workflow: typed signatures define what each step takes in and returns, and `AxFlow` expresses the branching logic explicitly — e.g. only invoke the browser-inspection step if the CI verdict isn't a clean pass, cap any self-critique/revision loop at a small retry count.
 
+> **Update (ADR-001, Aug 20, 2026):** Eve has been removed from the architecture. The real usage pattern is low-frequency and bounded-duration, not 24/7. GitHub Actions workflow triggers (`workflow_run`, `schedule`, `workflow_dispatch`) replace Eve's channels. Telegram long polling replaces Eve's webhook listener. Playwright runs inside the GitHub Actions runner. Memory is stored as files on a `bot-memory` git branch. Ax remains — it owns the reasoning workflow. See `ADR-001-bot-runtime-decision.md` for the full rationale and the shaping doc for the updated components.
+
 **Design principles carried through from framing:**
+
 - Keep deterministic steps (fetching logs, calling APIs) as plain code; reserve LLM calls for judgment/summarization steps specifically.
 - Any "self-improvement" behavior is in-context recall from a memory store (past runs, past human corrections) *within* a run — not live retraining. Actual optimization of prompts/signatures (via Ax's GEPA optimizer) is a separate, periodic offline job, not part of the live request path.
-- All team-specific values (CI provider tokens, GitHub secrets, Telegram bot token, target website URL, chat IDs) must live in environment variables / the deploy platform's secret manager — never committed to the repo, public or private.
+- All team-specific values (CI provider tokens, GitHub secrets, Telegram bot token, target website URL, chat IDs) must live in GitHub Actions secrets / environment variables — never committed to the repo, public or private.
 
-**Repo structure intent:** Single public repository, config-driven. A `config.example` (or `.env.example`) ships with placeholder values and documentation; the real team's values are supplied only as environment variables at deploy time, never as committed files.
+**Repo structure intent:** Single public repository, config-driven. A `config.example` (or `.env.example`) ships with placeholder values and documentation; the real team's values are supplied only as GitHub Actions secrets at deploy time, never as committed files.

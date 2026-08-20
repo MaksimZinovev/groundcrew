@@ -1,0 +1,10 @@
+{
+  "repo": "h4ckf0r0day/obscura",
+  "c1_pass": true,
+  "c1_fact": "Exposes CLI (obscura fetch/serve/scrape with --dump text/html/links, --eval, --screenshot), CDP server (obscura serve --port 9222, drop-in for Puppeteer/Playwright via ws://localhost:9222), and MCP server (docs/Use-the-MCP-server.md). All callable from TypeScript via puppeteer-core or playwright-core.",
+  "c2_pass": true,
+  "c2_fact": "Single binary download via curl (no Chrome, no Node.js, no dependencies). Runs on Linux x86_64 (Ubuntu 22.04+, glibc 2.35+). Docker image available (~57MB compressed, distroless). Headless by default. No external infrastructure needed.",
+  "c4_pass": true,
+  "c4_fact": "70MB binary size, 30MB memory usage, instant startup, 85ms page load. No Chromium download needed (native V8 rendering). Extremely lightweight \u2014 significantly lighter than Playwright+Chromium.",
+  "source": "README (manually analyzed, Ollama missed due to HTML-heavy README header)"
+}

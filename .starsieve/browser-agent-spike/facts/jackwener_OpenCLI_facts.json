@@ -1,0 +1,9 @@
+{
+  "c1_pass": true,
+  "c1_fact": "Provides a global CLI (`opencli`) that can be called from TypeScript via child_process or execa. It includes `opencli browser` primitives for navigation, extraction, and inspection. No explicit TypeScript SDK or MCP server is mentioned in the README.",
+  "c2_pass": false,
+  "c2_fact": "Cannot easily run headless on a GitHub Actions Ubuntu runner. It requires a Browser Bridge extension to be loaded into Chrome/Chromium and connects to a running, logged-in browser session. Standard headless Chrome on CI does not support extensions easily without complex workarounds (like xvfb and manual extension loading).",
+  "c4_pass": false,
+  "c4_fact": "It is a Node.js package (>=20), but the setup is not lightweight for CI as it requires installing the CLI, configuring a local daemon, and manually loading a browser extension into a Chrome instance, making it heavy for a simple GitHub Actions environment.",
+  "repo": "jackener/OpenCLI"
+}

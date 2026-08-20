@@ -30,7 +30,7 @@ shaping: true
 | R7.3 | 🟡 Minimal but extensible — platform-agnostic, easily extend to other CI types, testing frameworks, tools, customize logic and routing | Must-have |
 | R8 | 🟡 **Lean deployment on GitHub Actions** | |
 | R8.1 | 🟡 Entire bot runs on GitHub Actions — no external server, no Vercel, no container | Must-have |
-| R8.2 | 🟡 Browser agent lightweight enough to run on GitHub Actions runner (Ubuntu, limited time, no persistent browser infra) | Must-have |
+| R8.2 | 🟡 Browser agent lightweight enough to run on GitHub Actions runner — `@playwright/mcp` selected, hybrid local/Cloudflare CDP | Must-have |
 
 ---
 
@@ -58,14 +58,14 @@ Single TypeScript project. GitHub Actions workflow triggers own the trigger laye
 | R7.2 | 🟡 Dead-simple setup — CLI wizard, AI skill, sample project | Must-have | ❌ |
 | R7.3 | 🟡 Minimal but extensible — platform-agnostic, extend to other CI/frameworks | Must-have | ✅ |
 | R8.1 | 🟡 Entire bot runs on GitHub Actions — no external server | Must-have | ✅ |
-| R8.2 | 🟡 Browser agent lightweight enough for GitHub Actions runner | Must-have | ❌ |
+| R8.2 | 🟡 Browser agent lightweight enough for GitHub Actions runner | Must-have | ✅ |
 
 **Notes:**
 
 - R7.2 fails: Shape C has no CLI wizard, AI skill, or sample project component. These are new capabilities not in C1–C6.
 - R7.3 resolved via C6: plugins are npm packages exporting Ax `fn()` tool definitions. No plugin framework — TypeScript imports are the composition mechanism. CI provider adapters (C6.3) use the same pattern. See C6 component below.
-- R8.1 resolved via ADR-001: GitHub Actions only. No Eve, no Vercel, no Cloudflare, no external server. Three triggers: `workflow_run` (CI summary), `schedule` (live chat sessions), `workflow_dispatch` (on-demand). Telegram long polling instead of webhook. See `ADR-001-bot-runtime-decision.md`.
-- R8.2 fails: C2.4 says "Playwright" but the browser tool has not been evaluated against GitHub Actions runner constraints. 32 candidates in `shaping/GitHub-Stars-Manager-browser-agent.md` need a spike to resolve.
+- R8.1 resolved via ADR-001: GitHub Actions only. No Eve, no Vercel, no external server by default. Cloudflare Browser Rendering is a documented escape hatch for the browser backend (not used by default, available if local Chromium hits constraints). Three triggers: `workflow_run` (CI summary), `schedule` (live chat sessions), `workflow_dispatch` (on-demand). Telegram long polling instead of webhook. See `ADR-001-bot-runtime-decision.md`.
+- R8.2 resolved via spike: `@playwright/mcp` selected as the MCP server. Uses Playwright (same browser stack as the reference project). Defaults to local Chromium on the runner (R8.1 compliant). Cloudflare CDP endpoint as escape hatch via one env var. See `Unified-MCP-Architecture.md` and `playwright-mcp-vs-chrome-devtools-mcp.md`.
 
 ---
 
@@ -91,7 +91,7 @@ Single TypeScript project. GitHub Actions workflow triggers own the trigger laye
 | C2.1 | `recall()` node — queries memory store for similar past CI failures + human corrections, before planning | ⚠️ |
 | C2.2 | Planner node — sees recalled context, decides which specialist(s) to invoke (deterministic routing logic) | |
 | C2.3 | CI-Analyst node — deterministic fetch of CI logs + LLM analysis of results | |
-| C2.4 | Site-Inspector node — browses live site via Playwright, returns observations (deferred to M3, designed for now) | ⚠️ |
+| C2.4 | Site-Inspector node — browses live site via `@playwright/mcp` (MCP server), returns observations. Hybrid: local Chromium by default, Cloudflare CDP as escape hatch. Deferred to M3, designed for now. | ⚠️ |
 | C2.5 | Synthesizer node — drafts answer from recalled history + specialist output | |
 | C2.6 | Reflection node — self-critique with max 2 retries (Ax flow loop) | |
 | C2.7 | Send node — posts summary to Telegram via C1.3 | |
@@ -99,7 +99,7 @@ Single TypeScript project. GitHub Actions workflow triggers own the trigger laye
 
 > **C2.1 is ⚠️** — recall() needs a memory store (C3) that doesn't exist yet. The mechanism is understood (Ax `onMemoriesSearch`/`recall` pattern from self-improving.md), but the store backing it is a design choice (see C3 below).
 >
-> **C2.4 is ⚠️** — browser inspection is deferred to M3. The mechanism (Playwright in an Ax node/agent) is understood but not yet wired. Sequencing decision, not an unknown.
+> **C2.4 is ⚠️** — browser inspection is deferred to M3. The mechanism is designed: `@playwright/mcp` as MCP server (selected via spike, see `playwright-mcp-vs-chrome-devtools-mcp.md`), hybrid local/Cloudflare architecture (see `Unified-MCP-Architecture.md`). Not yet wired. Sequencing decision, not an unknown.
 
 ### C3: Memory store (git branch) 🟡
 
@@ -207,7 +207,7 @@ Single TypeScript project. GitHub Actions workflow triggers own the trigger laye
 
 ### Deploy target: GitHub Actions only 🟡
 
-**Resolved per ADR-001.** GitHub Actions only. No Vercel, no Cloudflare, no external server, no database.
+**Resolved per ADR-001.** GitHub Actions only. No Vercel, no external server, no database. Cloudflare Browser Rendering is a documented escape hatch for the browser backend only (not used by default, available via one env var if local Chromium hits constraints). See `Unified-MCP-Architecture.md`.
 
 ---
 
@@ -217,7 +217,7 @@ Single TypeScript project. GitHub Actions workflow triggers own the trigger laye
 |-----------|-------|-------------------|
 | **M1** | `workflow_run` trigger → recall → CI-Analyst → synthesize → reflect → send to Telegram → log outcome. Env-var config. GitHub Actions. CI provider adapter interface. | C1.1, C1.3, C2.1–C2.3, C2.5–C2.8, C3.1, C5.1–C5.2, C6.1–C6.3 |
 | **M2** | Interactive Telegram session — `schedule`/`workflow_dispatch` trigger + long polling. User messages bot, bot responds. Reuses M1's Ax flow. | + C1.2, C1.4 |
-| **M3** | 🟡 Browser inspection on CI failure. Browser tool selected from spike (must run on GitHub Actions). | + C2.4 |
+| **M3** | 🟡 Browser inspection on CI failure. `@playwright/mcp` as MCP server, local Chromium by default, Cloudflare CDP as escape hatch. | + C2.4 |
 | **M4** | Memory recall upgrade (vector search) + GEPA offline optimizer (weekly GitHub Action). | + C3.2, C4.1–C4.3 |
 | **M5** | Template packaging — forker README, example configs, adaptation docs, community plugin docs. | + C5.3, C6.4 |
 
@@ -227,10 +227,10 @@ Single TypeScript project. GitHub Actions workflow triggers own the trigger laye
 
 | Item | Status | Notes |
 |------|--------|-------|
-| 🟡 **Browser agent selection** | **Open — blocks R8.2** | 32 candidates in `shaping/GitHub-Stars-Manager-browser-agent.md`. Must run on GitHub Actions Ubuntu runner. Needs spike to evaluate top candidates against constraints: TypeScript, lightweight, no external browser infra, works as Ax node/agent, runs within GitHub Actions time limits. |
+| ~~Browser agent selection~~ | **Resolved** | `@playwright/mcp` selected via spike. Hybrid architecture: local Chromium by default (R8.1 compliant), Cloudflare CDP as escape hatch. See `playwright-mcp-vs-chrome-devtools-mcp.md` and `Unified-MCP-Architecture.md`. |
 | 🟡 **CLI wizard + sample project design** | **Open — blocks R7.2** | C5.4–C5.6 described but not concretely designed. Need to detail the `npx groundcrew init` flow and the sample project structure. |
 | ~~Eve vs plain GitHub Actions workflow~~ | **Resolved per ADR-001** | Eve removed. GitHub Actions only. |
-| ~~Deploy target~~ | **Resolved per ADR-001** | GitHub Actions only. No Vercel, no Cloudflare. |
+| ~~Deploy target~~ | **Resolved per ADR-001** | GitHub Actions only. No Vercel, no external server. Cloudflare is a documented escape hatch for the browser backend (not used by default). |
 | ~~CI provider pluggability~~ | **Resolved via C6.3** | CI providers are plugins. GitHub Actions adapter ships in-repo. |
 | Memory store backend | Resolved: `bot-memory` git branch | Files committed to a dedicated branch. Versioned, readable, no database. Upgrade to vector search in M4. |
 | Project name | Confirmed: Groundcrew | Repo at github.com/MaksimZinovev/groundcrew. |

@@ -1,0 +1,9 @@
+{
+  "c1_pass": true,
+  "c1_fact": "Browser Use exposes a Python SDK and a CLI (e.g., `browser-use skill install`). It can be registered as an MCP server/skill, which allows it to be called from TypeScript or other language agents via the MCP protocol.",
+  "c2_pass": true,
+  "c2_fact": "It can run headless on an Ubuntu runner. Installation requires Python 3.12 and `uv`. Since it drives a web browser (likely Playwright/Chromium under the hood), the necessary headless browser binaries must be installed on the runner. It also requires an external LLM API key (like OpenAI/Anthropic) to function.",
+  "c4_pass": false,
+  "c4_fact": "The tool is not very lightweight. It requires Python 3.12, Playwright browser binaries (which are hundreds of MBs to download), and numerous Python dependencies. Additionally, because it is an AI agent, it relies on continuous LLM API calls for every observation and action, which introduces network latency that could challenge the 2-3 minute completion constraint depending on the complexity of the site.",
+  "repo": "browser-use/browser-use"
+}

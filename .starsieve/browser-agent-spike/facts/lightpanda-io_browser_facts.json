@@ -1,0 +1,9 @@
+{
+  "c1_pass": true,
+  "c1_fact": "Provides a CLI (`./lightpanda fetch --dump html ...`) and exposes a Chrome DevTools Protocol (CDP) server on port 9222, allowing it to be driven programmatically via Puppeteer/Playwright in TypeScript.",
+  "c2_pass": true,
+  "c2_fact": "Can run on a GitHub Actions Ubuntu runner by downloading the nightly x86_64-linux binary via curl. Ubuntu provides the required glibc, and it runs completely headless locally without external infrastructure.",
+  "c4_pass": true,
+  "c4_fact": "Extremely lightweight, using only 123MB peak memory for 100 pages and executing 100 pages in 5s. It is distributed as a single binary with no external dependencies besides glibc.",
+  "repo": "lightpanda-io/browser"
+}

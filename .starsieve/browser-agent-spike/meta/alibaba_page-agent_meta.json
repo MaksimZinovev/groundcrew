@@ -1,0 +1,26 @@
+{
+  "archived": false,
+  "created_at": "2025-09-23T09:30:17Z",
+  "description": "JavaScript in-page GUI agent. Control web interfaces with natural language.",
+  "forks_count": 2571,
+  "full_name": "alibaba/page-agent",
+  "homepage": "https://alibaba.github.io/page-agent/",
+  "html_url": "https://github.com/alibaba/page-agent",
+  "language": "TypeScript",
+  "license": "MIT",
+  "open_issues_count": "1",
+  "pushed_at": "2026-08-17T19:33:07Z",
+  "stargazers_count": 28763,
+  "topics": [
+    "agent",
+    "ai",
+    "ai-agents",
+    "browser-automation",
+    "javascript",
+    "mcp",
+    "typescript",
+    "web"
+  ],
+  "watchers_count": 28763,
+  "closed_issues_count": "{\"message\":\"Validation Failed\",\"errors\":[{\"message\":\"The listed users and repositories cannot be searched either because the resources do not exist or you do not have permission to view them.\",\"resource\":\"Search\",\"field\":\"q\",\"code\":\"invalid\"}],\"documentation_url\":\"https://docs.github.com/v3/search/\",\"status\":\"422\"}?"
+}

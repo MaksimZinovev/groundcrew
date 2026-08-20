@@ -1,0 +1,9 @@
+{
+  "repo": "GoogleChrome/lighthouse",
+  "c1_pass": true,
+  "c1_fact": "Exposes Node.js API (programmatic, lighthouse function) and CLI (Node.js tool via npm). Does NOT expose an MCP server. Callable from TypeScript via Node.js API.",
+  "c2_pass": true,
+  "c2_fact": "Can run headless. Launches its own Chrome instance (via chrome-launcher + puppeteer-core). Suitable for GitHub Actions ubuntu-latest. No external infrastructure needed.",
+  "c4_pass": true,
+  "c4_fact": "npm package. Key deps: chrome-launcher, puppeteer-core. Install size and setup time dependent on Node.js packages. Relatively standard npm tool."
+}

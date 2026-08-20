@@ -1,0 +1,9 @@
+{
+  "c1_pass": true,
+  "c1_fact": "Firecrawl exposes a hosted HTTP API, an MCP server (mentioned as 'Connect Firecrawl to any AI agent or MCP client with a single command'), and SDKs (Python shown in README). It can easily be called from TypeScript via API requests or MCP.",
+  "c2_pass": false,
+  "c2_fact": "Firecrawl is primarily designed as a hosted service (requires an API key from firecrawl.dev). While open-source, self-hosting the tool requires setting up a complex backend architecture (Node.js/Python microservices, Playwright service, Redis, etc.) making it unsuitable to run natively as a simple headless node on a GitHub Actions runner without external infrastructure.",
+  "c4_pass": false,
+  "c4_fact": "Although the client-side SDKs are lightweight (just making HTTP requests), the self-hosted open-source backend is heavy, requiring multiple dependencies (Playwright, Redis, orchestration services). Setup time for the backend on a GitHub Actions runner would be excessive for a 2-3 minute job, and relying on the hosted service violates the 'without external infrastructure' constraint.",
+  "repo": "firecrawl/firecrawl"
+}

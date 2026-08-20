@@ -1,0 +1,9 @@
+{
+  "repo": "ChromeDevTools/chrome-devtools-mcp",
+  "c1_pass": true,
+  "c1_fact": "Exposes MCP server (primary, via npx chrome-devtools-mcp@latest), CLI (chrome-devtools navigate/screenshot/status), and programmatic TypeScript API (createMcpServer function, build/src/index.js entry point). All TypeScript-native.",
+  "c2_pass": true,
+  "c2_fact": "Runs headless on ubuntu-latest. CI workflow installs Chrome via npx puppeteer browsers install chrome. Requires Node.js LTS + Chrome. AppArmor disabled in CI. No external infrastructure.",
+  "c4_pass": true,
+  "c4_fact": "npm dependencies include @modelcontextprotocol/sdk and puppeteer. PUPPETEER_SKIP_DOWNLOAD can skip browser download if Chrome installed separately. Bundle script creates production bundle without node_modules at runtime. Setup takes a few minutes in CI."
+}

@@ -1,0 +1,9 @@
+{
+  "c1_pass": true,
+  "c1_fact": "The tool provides an npm package (TypeScript/JS SDK) and a Beta MCP Server that can be invoked programmatically. It exposes a JS API designed to be injected into a web page to perform text-based DOM manipulation via LLMs.",
+  "c2_pass": false,
+  "c2_fact": "It cannot run headless on a GitHub Actions runner by itself. The tool explicitly states 'No need for headless browser' because it is an in-page JS agent that lives inside a web page. To use it in CI, you must provide your own headless browser (e.g., via Playwright/Puppeteer) to open the page and inject the script.",
+  "c4_pass": false,
+  "c4_fact": "While the in-page script itself is lightweight (pure JS with a small bundle size), it is not a lightweight standalone Site-Inspector for CI. It requires an external LLM API endpoint to function and must be paired with a separate headless browser automation tool to navigate to URLs on a runner.",
+  "repo": "alibaba/page-agent"
+}

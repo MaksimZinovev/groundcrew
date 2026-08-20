@@ -43,23 +43,29 @@ These are the constraints and facts that pushed the decision:
 ## Options Considered
 
 ### Option 1: Eve + LangGraph
+
 Two frameworks, two languages (TypeScript + Python), connected across a process boundary.
 **Rejected:** adds a language boundary and a second runtime, for capabilities we did not end up needing at this usage scale.
 
 ### Option 2: Eve alone
+
 One TypeScript project. Simple to deploy, but all logic lives inside the agent's own reasoning — no clear way to say "always run this exact deterministic step, and only sometimes let the model decide."
 **Rejected:** does not give predictable control over deterministic vs. LLM-judged steps.
 
 ### Option 3: Eve + Ax, deployed on Vercel
+
 Eve handles triggers and durable sessions; Ax provides typed, branching workflow logic. This gives real durability (a paused session survives a crash or a long wait), human-approval gates, and multi-agent support.
 **Rejected for now:** these features (durable pause, human-in-the-loop approval, subagents) solve problems we do not currently have. Our sessions are short and finish in one sitting. Paying the setup and hosting cost for durability we do not need is not justified today. This may be worth revisiting if the bot later needs long, unpredictable waits for human approval.
 
 ### Option 4: GitHub Actions + Cloudflare/Vercel relay
+
 GitHub Actions handles the CI-triggered summary. A small serverless function on Cloudflare or Vercel receives Telegram's webhook and starts a workflow. Cloudflare's Browser Rendering API or a similar service handles the actual page browsing.
-**Rejected:** this works, but adds a second platform (Cloudflare or Vercel) purely to receive a message and relay it. Once we realized Telegram supports long polling, this relay step became unnecessary.
+**Rejected as default:** this works, but adds a second platform (Cloudflare or Vercel) purely to receive a message and relay it. Once we realized Telegram supports long polling, this relay step became unnecessary. Cloudflare Browser Rendering is, however, retained as a documented escape hatch for the browser backend only — see the Decision section below and `Unified-MCP-Architecture.md`.
 
 ### Option 5: GitHub Actions only (chosen)
+
 GitHub Actions runs everything:
+
 - A `workflow_run` trigger posts the daily CI summary.
 - A `schedule` trigger opens a time-boxed (10–15 minute) live chat session on the every-second-day pattern, using Telegram long polling (`getUpdates`) instead of a webhook.
 - A `workflow_dispatch` trigger lets a person start an on-demand session manually.
@@ -74,13 +80,16 @@ GitHub Actions runs everything:
 
 We will build the bot using **GitHub Actions only**, with three workflow triggers (`workflow_run`, `schedule`, `workflow_dispatch`), Telegram long polling instead of a webhook, Playwright running inside the runner for browsing, and cross-session memory stored as files on a dedicated git branch.
 
-No Cloudflare, Vercel, Eve, or external database is used in this version.
+No Cloudflare, Vercel, Eve, or external database is used in the default configuration.
+
+**Cloudflare as a documented escape hatch:** The browser inspection capability (C2.4, deferred to M3) uses `@playwright/mcp` as its MCP server. By default, Chromium runs locally inside the GitHub Actions runner — no external service. If local Chromium hits constraints (runner too slow, browser crashes, need residential IPs), the same MCP code can switch to Cloudflare Browser Rendering's CDP endpoint via one environment variable. This is not used by default and requires no Cloudflare account to start. See `Unified-MCP-Architecture.md` for the full hybrid design.
 
 ---
 
 ## Consequences
 
 ### Positive
+
 - One platform to operate (GitHub Actions), which we already use for CI.
 - Effectively free at this usage level (public repos: unlimited free minutes; private repos: well within the free monthly minutes for this usage pattern).
 - Real headless browser available with no extra service or extra cost.
@@ -88,6 +97,7 @@ No Cloudflare, Vercel, Eve, or external database is used in this version.
 - Simple to keep team secrets private: they live only in GitHub Actions secrets, never in code.
 
 ### Negative / accepted trade-offs
+
 - The bot cannot react the instant someone sends a Telegram message out of nowhere. A session must be started first — either by a schedule or by a person manually running the workflow. This is an accepted limitation given the usage pattern (nobody needs an instant cold-start reply).
 - Starting a new GitHub Actions run takes roughly 10–30 seconds before it actually begins. Acceptable for a deliberately-started session; would not be acceptable for an always-on assistant.
 - Only one long-polling session can run at a time per bot token, or Telegram will return an error. We handle this with GitHub Actions' `concurrency` setting so a second run cannot start while one is active.

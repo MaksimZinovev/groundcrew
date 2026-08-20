@@ -1,0 +1,9 @@
+{
+  "repo": "nicobailon/surf-cli",
+  "c1_pass": true,
+  "c1_fact": "Exposes CLI (surf command, native/cli.cjs), Unix socket API (JSON tool_request at /tmp/surf.sock), and MCP server (PiChromeMcpServer with @modelcontextprotocol/sdk, Zod schemas, via 'surf server'). Callable from TypeScript.",
+  "c2_pass": true,
+  "c2_fact": "Runs on ubuntu-latest in CI. Requires Xvfb and tigervnc-standalone-server for headless. Install: npm install -g surf-cli + load browser extension + install native host. Requires chromium-browser, nodejs, npm, imagemagick on Linux. No external infrastructure.",
+  "c4_pass": true,
+  "c4_fact": "npm package with deps: @google/generative-ai, @modelcontextprotocol/sdk, zod. Zero config design. First CDP operation takes 5-8 seconds (debugger attach), subsequent calls faster. Requires browser extension loading (manual step)."
+}

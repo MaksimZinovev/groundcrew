@@ -1,0 +1,9 @@
+{
+  "c1_pass": false,
+  "c1_fact": "The tool provides a CLI to launch a web UI server (`magentic-ui --port 8081`), but does not expose a programmatic API, SDK, or MCP server for direct headless integration from TypeScript.",
+  "c2_pass": false,
+  "c2_fact": "It requires connecting to an external model endpoint ('connect a model endpoint') and is designed as a web UI application rather than a headless script. It also relies on a VM sandbox (Quicksand) which is not trivially headless on GitHub Actions.",
+  "c4_pass": false,
+  "c4_fact": "It is an agentic application requiring a running web server, an external model endpoint, and a VM sandbox for browser execution. This makes it too heavy and complex for a simple, quick CI inspection task.",
+  "repo": "microsoft/magentic-ui"
+}

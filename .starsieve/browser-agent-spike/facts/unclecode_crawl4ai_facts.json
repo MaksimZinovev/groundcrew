@@ -1,0 +1,9 @@
+{
+  "c1_pass": true,
+  "c1_fact": "Crawl4AI provides a Python SDK and a secure HTTP API via its Docker API server, which can be easily called from TypeScript using fetch or standard HTTP clients.",
+  "c2_pass": true,
+  "c2_fact": "It can run headless on a GitHub Actions Ubuntu runner using Playwright, which is natively supported on Linux environments without requiring external infrastructure. Installation requires pip install and Playwright browser setup.",
+  "c4_pass": true,
+  "c4_fact": "While it is a Python tool utilizing Playwright (requiring ~150MB+ for browser binaries), setup is straightforward and executing a single URL crawl to extract text/Markdown is extremely fast, easily completing well within the 2-3 minute time limit.",
+  "repo": "unclecode/crawl4ai"
+}

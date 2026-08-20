@@ -1,0 +1,8 @@
+/Users/maksim/repos/starsieve/scripts/validate-comparison.py:20: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  ts = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+✅ 5/5 claims sourced
+✅ 15 fact files, 15 meta files loaded
+✅ Gap transparency checked (0 failures found)
+
+
+VALIDATION: PASS

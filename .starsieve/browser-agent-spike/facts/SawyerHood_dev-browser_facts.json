@@ -1,0 +1,9 @@
+{
+  "repo": "SawyerHood/dev-browser",
+  "c1_pass": true,
+  "c1_fact": "Exposes CLI (primary, Rust binary with --headless flag, scripts via stdin/file). Does NOT expose MCP server or direct TypeScript API. CLI callable from TS via child_process. Scripts run in sandboxed QuickJS runtime with limited globals.",
+  "c2_pass": true,
+  "c2_fact": "Tested on ubuntu-latest in GitHub Actions CI. Supports --headless flag. Requires npm + Playwright + Chromium. Daemon communicates via Unix domain socket with JSON-RPC. No external infrastructure.",
+  "c4_pass": true,
+  "c4_fact": "npm package with postinstall script (downloads Rust binary). Dependencies: playwright, playwright-core, quickjs-emscripten. dev-browser install runs npm install + playwright install chromium. Moderate weight due to Playwright dependency."
+}

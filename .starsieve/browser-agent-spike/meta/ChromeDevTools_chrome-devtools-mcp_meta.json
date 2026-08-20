@@ -1,0 +1,26 @@
+{
+  "archived": false,
+  "created_at": "2025-09-11T10:39:55Z",
+  "description": "Chrome DevTools for coding agents",
+  "forks_count": 3450,
+  "full_name": "ChromeDevTools/chrome-devtools-mcp",
+  "homepage": "https://npmjs.org/package/chrome-devtools-mcp",
+  "html_url": "https://github.com/ChromeDevTools/chrome-devtools-mcp",
+  "language": "TypeScript",
+  "license": "Apache-2.0",
+  "open_issues_count": "1",
+  "pushed_at": "2026-08-20T09:07:06Z",
+  "stargazers_count": 49473,
+  "topics": [
+    "browser",
+    "chrome",
+    "chrome-devtools",
+    "debugging",
+    "devtools",
+    "mcp",
+    "mcp-server",
+    "puppeteer"
+  ],
+  "watchers_count": 49473,
+  "closed_issues_count": "{\"message\":\"Validation Failed\",\"errors\":[{\"message\":\"The listed users and repositories cannot be searched either because the resources do not exist or you do not have permission to view them.\",\"resource\":\"Search\",\"field\":\"q\",\"code\":\"invalid\"}],\"documentation_url\":\"https://docs.github.com/v3/search/\",\"status\":\"422\"}?"
+}

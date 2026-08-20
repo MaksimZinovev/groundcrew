@@ -1,0 +1,9 @@
+{
+  "c1_pass": true,
+  "c1_fact": "The repository indicates it exposes an MCP server (noted by the 'mcp-name' comment and 'AI Agent Skill' / 'OpenClaw Skill' badges) which can be called from TypeScript via the MCP protocol. It also provides a Python SDK.",
+  "c2_pass": true,
+  "c2_fact": "As a Python package published on PyPI, it can be installed and run on a GitHub Actions Ubuntu runner. It includes 'Fetchers' which support headless browser navigation for live websites without external infrastructure.",
+  "c4_pass": true,
+  "c4_fact": "While exact install size and dependency count are not specified in the README, Python scraping libraries with headless browser support (like Playwright/Selenium) typically have a moderate footprint. Setup involves installing the package and browser binaries, which is generally feasible within a 2-3 minute time limit on a GitHub Actions runner.",
+  "repo": "D4Vinci/Scrapling"
+}

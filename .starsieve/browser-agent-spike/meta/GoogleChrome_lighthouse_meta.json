@@ -1,0 +1,26 @@
+{
+  "archived": false,
+  "created_at": "2016-03-08T01:03:11Z",
+  "description": "Automated auditing, performance metrics, and best practices for the web.",
+  "forks_count": 9752,
+  "full_name": "GoogleChrome/lighthouse",
+  "homepage": "https://developer.chrome.com/docs/lighthouse/overview/",
+  "html_url": "https://github.com/GoogleChrome/lighthouse",
+  "language": "JavaScript",
+  "license": "Apache-2.0",
+  "open_issues_count": "1",
+  "pushed_at": "2026-08-18T16:18:32Z",
+  "stargazers_count": 30678,
+  "topics": [
+    "audit",
+    "best-practices",
+    "chrome-devtools",
+    "developer-tools",
+    "performance-analysis",
+    "performance-metrics",
+    "pwa",
+    "web"
+  ],
+  "watchers_count": 30678,
+  "closed_issues_count": "{\"message\":\"Validation Failed\",\"errors\":[{\"message\":\"The listed users and repositories cannot be searched either because the resources do not exist or you do not have permission to view them.\",\"resource\":\"Search\",\"field\":\"q\",\"code\":\"invalid\"}],\"documentation_url\":\"https://docs.github.com/v3/search/\",\"status\":\"422\"}?"
+}

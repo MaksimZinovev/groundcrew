@@ -1,0 +1,9 @@
+{
+  "repo": "microsoft/playwright",
+  "c1_pass": true,
+  "c1_fact": "Playwright exposes all three interfaces: (1) Programmatic API (TypeScript SDK with chromium module), (2) MCP server via npx @playwright/mcp@latest with structured accessibility snapshots, (3) CLI via @playwright/cli for agent-based browser control. All callable from TypeScript.",
+  "c2_pass": true,
+  "c2_fact": "Designed for CI. GitHub Actions workflows use ubuntu-latest. Install: npm ci + npx playwright install --with-deps. Headless by default. No external infrastructure needed.",
+  "c4_pass": true,
+  "c4_fact": "playwright-core package is small (browser automation primitives without browser binaries). Full playwright package downloads browsers on demand. Docker images available with pre-installed browsers. Setup time optimized for CI with npm ci + playwright install."
+}

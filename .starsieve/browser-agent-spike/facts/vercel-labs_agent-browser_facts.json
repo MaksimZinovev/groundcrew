@@ -1,0 +1,9 @@
+{
+  "repo": "vercel-labs/agent-browser",
+  "c1_pass": true,
+  "c1_fact": "Exposes CLI (primary, agent-browser open/snapshot/click/screenshot with --json flag), MCP server (stdio JSON-RPC, agent-browser mcp, tool profiles: core/network/react), and TypeScript API for serverless (@agent-browser/sandbox/vercel). Rust implementation.",
+  "c2_pass": true,
+  "c2_fact": "Runs on ubuntu-latest in CI. Install: agent-browser install (downloads Chrome) + agent-browser install --with-deps (system deps). 100% native Rust, no Node.js/Playwright needed for daemon. No external infrastructure.",
+  "c4_pass": true,
+  "c4_fact": "Install size reduced from 710MB to 7MB (Rust native, no Node.js/Playwright daemon). Cold start 617ms (down from 1002ms). Memory usage 8MB (down from 143MB). Extremely lightweight."
+}

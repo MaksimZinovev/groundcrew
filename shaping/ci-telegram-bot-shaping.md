@@ -26,7 +26,7 @@ shaping: true
 | R6.3 | Template docs and forker-facing README (how to adapt this) | Nice-to-have |
 | R7 | 🟡 **Efficiency and simplicity** | |
 | R7.1 | 🟡 Token efficiency — workflow broken into smaller tasks, only relevant parts sent to LLM, supports local/cheap LLMs | Must-have |
-| R7.2 | 🟡 Dead-simple setup — CLI wizard, AI skill, and sample project (Playwright/CI) so users can get started in minutes | Must-have |
+| R7.2 | 🟡 Dead-simple setup — CLI wizard, AI skill, and sample project (Playwright/CI) so users can get started in minutes | Nice-to-have |
 | R7.3 | 🟡 Minimal but extensible — platform-agnostic, easily extend to other CI types, testing frameworks, tools, customize logic and routing | Must-have |
 | R8 | 🟡 **Lean deployment on GitHub Actions** | |
 | R8.1 | 🟡 Entire bot runs on GitHub Actions — no external server, no Vercel, no container | Must-have |
@@ -55,14 +55,14 @@ Single TypeScript project. GitHub Actions workflow triggers own the trigger laye
 | R6.2 | All team-specific values in env vars — never committed | Must-have | ✅ |
 | R6.3 | Template docs and forker-facing README | Nice-to-have | ✅ |
 | R7.1 | 🟡 Token efficiency — smaller tasks, only relevant parts to LLM, local/cheap LLM support | Must-have | ✅ |
-| R7.2 | 🟡 Dead-simple setup — CLI wizard, AI skill, sample project | Must-have | ❌ |
+| R7.2 | 🟡 Dead-simple setup — CLI wizard, AI skill, sample project | Nice-to-have | ✅ |
 | R7.3 | 🟡 Minimal but extensible — platform-agnostic, extend to other CI/frameworks | Must-have | ✅ |
 | R8.1 | 🟡 Entire bot runs on GitHub Actions — no external server | Must-have | ✅ |
 | R8.2 | 🟡 Browser agent lightweight enough for GitHub Actions runner | Must-have | ✅ |
 
 **Notes:**
 
-- R7.2 fails: Shape C has no CLI wizard, AI skill, or sample project component. These are new capabilities not in C1–C6.
+- R7.2 is nice-to-have (deferred): CLI wizard, AI skill, and sample project (C5.4–C5.6) are future improvements, not launch blockers. The bot works without them — they make it easier for others to adopt.
 - R7.3 resolved via C6: plugins are npm packages exporting Ax `fn()` tool definitions. No plugin framework — TypeScript imports are the composition mechanism. CI provider adapters (C6.3) use the same pattern. See C6 component below.
 - R8.1 resolved via ADR-001: GitHub Actions only. No Eve, no Vercel, no external server by default. Cloudflare Browser Rendering is a documented escape hatch for the browser backend (not used by default, available if local Chromium hits constraints). Three triggers: `workflow_run` (CI summary), `schedule` (live chat sessions), `workflow_dispatch` (on-demand). Telegram long polling instead of webhook. See `ADR-001-bot-runtime-decision.md`.
 - R8.2 resolved via spike: `@playwright/mcp` selected as the MCP server. Uses Playwright (same browser stack as the reference project). Defaults to local Chromium on the runner (R8.1 compliant). Cloudflare CDP endpoint as escape hatch via one env var. See `Unified-MCP-Architecture.md` and `playwright-mcp-vs-chrome-devtools-mcp.md`.
@@ -228,7 +228,7 @@ Single TypeScript project. GitHub Actions workflow triggers own the trigger laye
 | Item | Status | Notes |
 |------|--------|-------|
 | ~~Browser agent selection~~ | **Resolved** | `@playwright/mcp` selected via spike. Hybrid architecture: local Chromium by default (R8.1 compliant), Cloudflare CDP as escape hatch. See `playwright-mcp-vs-chrome-devtools-mcp.md` and `Unified-MCP-Architecture.md`. |
-| 🟡 **CLI wizard + sample project design** | **Open — blocks R7.2** | C5.4–C5.6 described but not concretely designed. Need to detail the `npx groundcrew init` flow and the sample project structure. |
+| 🟡 **CLI wizard + sample project design** | **Deferred — future improvement** | C5.4–C5.6 described but not concretely designed. Nice-to-have, not a launch blocker. Will be designed after the bot works for the real team. |
 | ~~Eve vs plain GitHub Actions workflow~~ | **Resolved per ADR-001** | Eve removed. GitHub Actions only. |
 | ~~Deploy target~~ | **Resolved per ADR-001** | GitHub Actions only. No Vercel, no external server. Cloudflare is a documented escape hatch for the browser backend (not used by default). |
 | ~~CI provider pluggability~~ | **Resolved via C6.3** | CI providers are plugins. GitHub Actions adapter ships in-repo. |

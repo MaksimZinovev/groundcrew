@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-08-20
-**Related:** `playwright-mcp-vs-chrome-devtools-mcp.md` (MCP server selection), `ADR-001-bot-runtime-decision.md` (runtime decision), `ci-telegram-bot-shaping.md` (C2.4, R8.2)
+**Related:** `playwright-mcp-vs-chrome-devtools-mcp.md` (MCP server selection), `ADR-001-bot-runtime-decision.md` (runtime decision), `ADR-002-browser-backend-decision.md` (browser backend decision), `ci-telegram-bot-shaping.md` (C2.4, R8.2)
 
 ---
 
@@ -32,36 +32,36 @@ const siteInspector = ax.defineNode({
 ### The config switch (one environment variable)
 
 ```typescript
-// Local mode — browser runs on the GHA runner
-// No --cdp-endpoint flag = @playwright/mcp launches local Chromium
-const endpointArgs = [];
-
-// Remote mode — browser runs on Cloudflare's edge
-// Just add the --cdp-endpoint flag pointing to Cloudflare's CDP endpoint
+// Cloudflare mode — DEFAULT. Browser runs on Cloudflare's edge.
+// No Chromium download, no browser install on the runner.
 const endpointArgs = [
   '--cdp-endpoint', process.env.CF_BROWSER_ENDPOINT,
   '--cdp-headers', `{"Authorization":"Bearer ${process.env.CF_API_TOKEN}"}`,
 ];
 
+// Local mode — FALLBACK. For offline dev or air-gapped runners.
+// Omit CF_BROWSER_ENDPOINT → @playwright/mcp launches local Chromium.
+const endpointArgs = [];
+
 // The switch is just:
 const endpointArgs = process.env.CF_BROWSER_ENDPOINT
   ? ['--cdp-endpoint', process.env.CF_BROWSER_ENDPOINT,
      '--cdp-headers', `{"Authorization":"Bearer ${process.env.CF_API_TOKEN}"}`]
-  : []; // empty = local Chromium
+  : []; // empty = local Chromium (fallback)
 ```
 
 ### In GitHub Actions workflow YAML
 
 ```yaml
-# Option A: Local Chromium (default — no extra config)
-env:
-  # No CF_BROWSER_ENDPOINT set → @playwright/mcp launches local Chromium
-  PLAYWRIGHT_BROWSERS_PATH: /opt/hostedtoolcache
-
-# Option B: Cloudflare remote (just add two secrets)
+# DEFAULT: Cloudflare Browser Rendering (no Chromium on runner)
 env:
   CF_BROWSER_ENDPOINT: wss://api.cloudflare.com/client/v4/accounts/${{ secrets.CF_ACCOUNT_ID }}/browser-rendering/devtools/browser?keep_alive=600000
   CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+
+# FALLBACK: Local Chromium (for offline dev or air-gapped runners)
+# Omit CF_BROWSER_ENDPOINT. Optionally use --browser=chrome for system Chrome.
+env:
+  PLAYWRIGHT_BROWSERS_PATH: /opt/hostedtoolcache
 ```
 
 ### Programmatic API (alternative to npx)
@@ -87,15 +87,15 @@ This satisfies R4 (single TypeScript project, no process boundary) more cleanly 
 
 The Ax workflow's LLM calls the same MCP tools (`browser_navigate`, `browser_snapshot`, `browser_take_screenshot`, `browser_evaluate`) regardless of where the browser runs. CDP is CDP — the commands are identical whether the browser is 1ms away on localhost or 50ms away on Cloudflare's edge. You write the browser integration once.
 
-### 2. R8.1 compliance by default, escape hatch when needed
+### 2. Fast startup, no browser install on runner
 
-The ADR-001 decision says "no external server." Option A (local Chromium) satisfies this completely — no external dependency, no Cloudflare account, no API token. But if you later hit constraints (runner too slow to install Chromium, need residential IPs for anti-bot, need browsers closer to the target site for speed), you flip to Option B by adding two env vars. No code change.
+Cloudflare Browser Rendering is the default (ADR-002). No ~300MB Chromium download per run. Near-instant CDP connection to Cloudflare's edge. The runner only needs the `@playwright/mcp` npm package (a few MB). Local Chromium is a fallback for offline dev or air-gapped runners — omit `CF_BROWSER_ENDPOINT` and `@playwright/mcp` launches local Chromium.
 
-### 3. Development vs production divergence
+### 3. Development vs production
 
-During **development**: use local Chromium. Free, instant, no account setup, no network latency. Run the workflow on your laptop.
+During **development**: set `CF_BROWSER_ENDPOINT` to empty to use local Chromium. Free, no network latency, no Cloudflare account needed. Run the workflow on your laptop.
 
-In **production on GHA**: start with local Chromium too (it works, proven by scool-playwright). But if the 300MB Chromium download is eating into your 10-15 minute session budget, or if Chrome crashes on the runner, switch to Cloudflare. The workflow code doesn't change.
+In **production on GHA**: Cloudflare is the default. Faster startup (no browser download), reliable (Cloudflare manages the browser), and the free tier covers the low-frequency usage pattern.
 
 ### 4. One browser stack across the ecosystem
 
@@ -113,11 +113,11 @@ Any cloud browser service that speaks CDP over WebSocket can be a backend. Today
 
 ## Summary: three integration tiers
 
-| Tier | Integration | Browser location | R8.1 | Weight | Flexibility |
-|------|-----------|-----------------|------|--------|-------------|
-| **1. Simplest** | Ax `fn()` → Cloudflare Quick Actions (HTTP POST) | Cloudflare remote | ❌ External service | Zero (just fetch) | Read-only (no clicking) |
-| **2. MCP local** | Ax MCP client → `@playwright/mcp` → local Chromium | GHA runner | ✅ No external service | ~300MB Chromium | Full CDP control |
-| **3. MCP remote** | Ax MCP client → `@playwright/mcp` → Cloudflare CDP | Cloudflare remote | ❌ External service | Zero (no browser) | Full CDP control |
-| **4. Hybrid** | Same MCP code, switch backend via env var | Runner OR Cloudflare | ✅ default, ❌ optional | Configurable | Full CDP control, swappable |
+| Tier | Integration | Browser location | Default? | Weight | Flexibility |
+|------|-----------|-----------------|----------|--------|-------------|
+| **1. Simplest** | Ax `fn()` → Cloudflare Quick Actions (HTTP POST) | Cloudflare remote | No | Zero (just fetch) | Read-only (no clicking) |
+| **2. MCP local** | Ax MCP client → `@playwright/mcp` → local Chromium | GHA runner | Fallback | ~300MB Chromium | Full CDP control |
+| **3. MCP remote** | Ax MCP client → `@playwright/mcp` → Cloudflare CDP | Cloudflare remote | **✅ Default** | Zero (no browser) | Full CDP control |
+| **4. Hybrid** | Same MCP code, switch backend via env var | Cloudflare OR local | Configurable | Configurable | Full CDP control, swappable |
 
-**The recommendation is Tier 4 (Hybrid):** Write the MCP integration once using `@playwright/mcp`. Default to local Chromium (R8.1 compliant, proven pattern, same browser stack as the reference project). Keep Cloudflare as an escape hatch — if local Chromium is too heavy or unreliable, switch with one env var. The Ax workflow never knows the difference.
+**Default is Tier 3 (Cloudflare remote).** Write the MCP integration once using `@playwright/mcp`. Cloudflare Browser Rendering is the default — no Chromium on the runner, fast startup, free tier covers this usage. Local Chromium is the fallback for offline dev (omit `CF_BROWSER_ENDPOINT`). A future milestone may add a config option so forkers choose their backend without code changes. See `ADR-002-browser-backend-decision.md`.

@@ -60,7 +60,7 @@ Eve handles triggers and durable sessions; Ax provides typed, branching workflow
 ### Option 4: GitHub Actions + Cloudflare/Vercel relay
 
 GitHub Actions handles the CI-triggered summary. A small serverless function on Cloudflare or Vercel receives Telegram's webhook and starts a workflow. Cloudflare's Browser Rendering API or a similar service handles the actual page browsing.
-**Rejected as default:** this works, but adds a second platform (Cloudflare or Vercel) purely to receive a message and relay it. Once we realized Telegram supports long polling, this relay step became unnecessary. Cloudflare Browser Rendering is, however, retained as a documented escape hatch for the browser backend only — see the Decision section below and `Unified-MCP-Architecture.md`.
+**Rejected as default:** this works, but adds a second platform (Cloudflare or Vercel) purely to receive a message and relay it. Once we realized Telegram supports long polling, this relay step became unnecessary. Cloudflare Browser Rendering is, however, used as the default browser backend — see `ADR-002-browser-backend-decision.md`.
 
 ### Option 5: GitHub Actions only (chosen)
 
@@ -69,7 +69,7 @@ GitHub Actions runs everything:
 - A `workflow_run` trigger posts the daily CI summary.
 - A `schedule` trigger opens a time-boxed (10–15 minute) live chat session on the every-second-day pattern, using Telegram long polling (`getUpdates`) instead of a webhook.
 - A `workflow_dispatch` trigger lets a person start an on-demand session manually.
-- Playwright runs directly inside the GitHub Actions runner for live browser checks — no external browser service needed.
+- Browser inspection uses Cloudflare Browser Rendering as the default backend via `@playwright/mcp` — no Chromium installed on the runner. See `ADR-002-browser-backend-decision.md`.
 - Anything worth remembering between sessions is written to a file and committed to a dedicated `bot-memory` git branch, then read back in at the start of the next session.
 
 **Accepted.** This removes the extra platform, removes the need for a database, and matches how rarely and briefly the bot is actually used.
@@ -78,11 +78,9 @@ GitHub Actions runs everything:
 
 ## Decision
 
-We will build the bot using **GitHub Actions only**, with three workflow triggers (`workflow_run`, `schedule`, `workflow_dispatch`), Telegram long polling instead of a webhook, Playwright running inside the runner for browsing, and cross-session memory stored as files on a dedicated git branch.
+We will build the bot using **GitHub Actions only**, with three workflow triggers (`workflow_run`, `schedule`, `workflow_dispatch`), Telegram long polling instead of a webhook, browser inspection via Cloudflare Browser Rendering (see ADR-002), and cross-session memory stored as files on a dedicated git branch.
 
-No Cloudflare, Vercel, Eve, or external database is used in the default configuration.
-
-**Cloudflare as a documented escape hatch:** The browser inspection capability (C2.4, deferred to M3) uses `@playwright/mcp` as its MCP server. By default, Chromium runs locally inside the GitHub Actions runner — no external service. If local Chromium hits constraints (runner too slow, browser crashes, need residential IPs), the same MCP code can switch to Cloudflare Browser Rendering's CDP endpoint via one environment variable. This is not used by default and requires no Cloudflare account to start. See `Unified-MCP-Architecture.md` for the full hybrid design.
+No Vercel, Eve, or external database is used. Cloudflare is used only as the browser backend (an external API call, not a deployment platform) — see `ADR-002-browser-backend-decision.md`.
 
 ---
 

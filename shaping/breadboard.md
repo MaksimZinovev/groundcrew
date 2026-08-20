@@ -98,7 +98,7 @@ shaping: true
 
 | # | Place | Component | Affordance | Control | Wires Out | Returns To |
 |---|-------|-----------|------------|---------|-----------|------------|
-| N18 | P2 | site-inspector | `@playwright/mcp` MCP client | call | → N19 | → N10 |
+| N18 | P2 | site-inspector | `@playwright/mcp` MCP client (Cloudflare CDP default, local Chromium fallback) | call | → N19 | → N10 |
 | N19 | P4 | site-inspector | Browser tools (navigate, snapshot, screenshot, evaluate) | call | — | → N18 |
 
 > N18 starts or connects to the browser via `@playwright/mcp`. Local Chromium by default; Cloudflare CDP endpoint if `CF_BROWSER_ENDPOINT` env var is set (hybrid architecture per `Unified-MCP-Architecture.md`). N19 is the set of MCP tools the LLM calls in a ReAct loop: `browser_navigate`, `browser_snapshot`, `browser_take_screenshot`, `browser_evaluate`. Observations return to the Site-Inspector node (N10), which passes them to the Synthesizer (N11).

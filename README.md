@@ -51,7 +51,7 @@ This repository is a working tool and a starting point for others. If you help a
 
 - **GitHub Actions** — handles triggers. `workflow_run` fires when CI completes. `schedule` and `workflow_dispatch` open live chat sessions. Telegram long polling receives messages. No external server.
 - **Ax** — handles the reasoning workflow. The flow is explicit: `recall → plan → analyze → synthesize → reflect → send → log`. Deterministic steps use plain code. LLM steps use typed signatures with validation.
-- **Playwright MCP** — `@playwright/mcp` as the MCP server for live website inspection. Runs local Chromium inside the GitHub Actions runner by default. Cloudflare Browser Rendering is available as a remote backend via one env var if the runner's browser is too slow or unreliable.
+- **Playwright MCP** — `@playwright/mcp` as the MCP server for live website inspection. Cloudflare Browser Rendering is the default backend (no browser install on the runner). Local Chromium is the fallback for offline dev.
 - One TypeScript project. No cross-language boundary. Everything runs on GitHub Actions.
 
 See [`shaping/`](shaping/) for the design documents, [`shaping/ADR-001-bot-runtime-decision.md`](shaping/ADR-001-bot-runtime-decision.md) for the runtime decision, and [`shaping/Unified-MCP-Architecture.md`](shaping/Unified-MCP-Architecture.md) for the browser inspection architecture.

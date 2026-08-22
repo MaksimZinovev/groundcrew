@@ -1,0 +1,90 @@
+name: Mirror to Public Repo
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout private repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Strip private files
+        run: |
+          set -euo pipefail
+
+          # Remove files/dirs listed in .publicignore (root-level paths)
+          while IFS= read -r pattern; do
+            # Skip empty lines and comments
+            [[ -z "${pattern}" || "${pattern}" == \#* ]] && continue
+            # Skip negation patterns (keep those files)
+            [[ "${pattern}" == !* ]] && continue
+            # Strip trailing slash for dir patterns
+            target="${pattern%/}"
+            # Only remove if it exists at repo root
+            if [[ -e "./${target}" && ! "./${target}" == ./.git/* ]]; then
+              echo "Removing: ${target}"
+              rm -rf "./${target}"
+            fi
+          done < .publicignore
+
+          # Safety check — .env must never reach the public repo
+          if [ -f .env ]; then
+            echo "::error::.env found after stripping — aborting mirror"
+            exit 1
+          fi
+
+          echo "Stripped private files. Remaining contents:"
+          find . -not -path './.git/*' -type f | sort
+
+      - name: Create clean commit on orphan branch
+        run: |
+          set -euo pipefail
+
+          # Capture source SHA before orphan (no HEAD after checkout --orphan)
+          SOURCE_SHA=$(git rev-parse --short HEAD)
+
+          # Configure git identity for the commit
+          git config user.name "groundcrew-mirror-bot"
+          git config user.email "mirror-bot@groundcrew.local"
+
+          # Create an orphan branch — no history, so private files
+          # from previous commits never appear in the public repo
+          git checkout --orphan mirror-public
+
+          # Stage only the stripped working tree
+          git add -A
+          git commit -m "mirror: sync from private repo @ ${SOURCE_SHA}"
+
+          echo "Orphan commit created:"
+          git log --oneline -1
+          echo "Files in commit:"
+          git ls-tree --name-only HEAD
+
+      - name: Push to public repo
+        env:
+          PUBLIC_REPO_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # Clear the extraheader that actions/checkout sets with the
+          # Actions-issued GITHUB_TOKEN — it overrides URL-embedded creds
+          # and authenticates as github-actions[bot] (scoped to this repo only)
+          git config --unset-all http.https://github.com/.extraheader || true
+
+          # Swap origin to the public repo
+          git remote remove origin
+          git remote add origin "https://x-access-token:${PUBLIC_REPO_TOKEN}@github.com/MaksimZinovev/groundcrew.git"
+
+          # Force-push orphan branch as main — replaces public repo history
+          # with a single clean commit containing only public-safe files
+          git push --force origin mirror-public:main
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::warning::Mirror to public repo failed. Check logs above."

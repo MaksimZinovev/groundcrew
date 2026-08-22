@@ -1,0 +1,1 @@
+- [ ] add visual feedback or progress indicator in telegram chat when analysis is running (e.g. "Analyzing CI logs...") 
